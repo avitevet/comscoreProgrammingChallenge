@@ -1,0 +1,67 @@
+#!/usr/bin/env perl
+
+use warnings;
+use strict;
+use Getopt::Long;
+use Pod::Usage;
+use Pod::Text;
+use FindBin;
+use lib "lib";
+use DataStore qw(saveTsv);
+
+my %opt = (
+  datadir => "$FindBin::Bin/data"
+);
+GetOptions(\%opt,
+  "help",
+  "file:s",
+  "datadir:s"
+)
+or pod2usage(2);
+pod2usage(-exitval => 0, -verbose => 2) if $opt{help};
+pod2usage("File is a required argument!") if !$opt{file};
+die "Couldn't read data directory!" if !-r $opt{datadir};
+die "Couldn't read import file!" if !-r $opt{file};
+
+DataStore::saveTsv($opt{datadir}, $opt{file});
+
+
+__END__
+
+=head1 NAME
+
+import: Import a file into the comScore Programming Challenge datastore
+
+=head1 SYNOPSIS
+
+import --file <path> [--datadir <directory>] [--help]
+
+=head1 OPTIONS
+
+=over
+
+=item file <path>
+
+Required.  Path to the file that should be imported
+
+=item datadir <directory>
+
+Optional.  Path to the directory where the datastore is located
+
+=item help
+
+Optional.  This message
+
+=back
+
+=head1 DESCRIPTION
+
+Imports a file into the comScore Programming Challenge datastore.  Merges it
+with the existing datastore by overwriting existing entries, if an existing
+entry is already present.  An entry is deemed to be present if the incoming
+STB, TITLE, and DATE are the same as an existing entry.  Also performs
+immediate cleanup - in the case where an incoming entry overwrites an existing
+entry, this script determines if any old/orphan data can be deleted from the
+datastore as a result of the overwrite.
+
+=cut
