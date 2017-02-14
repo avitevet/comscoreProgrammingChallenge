@@ -9,9 +9,10 @@ use warnings;
 use Text::CSV;
 use Exporter;
 
-our @EXPORT_OK = qw(saveTsv);
+our @EXPORT_OK = qw(saveTsv query @visible_headers);
 
 my $filename = "datastore.csv";
+our @visible_headers = qw(STB TITLE PROVIDER DATE REV VIEW_TIME);
 my @headers = qw(KEY STB TITLE PROVIDER DATE REV VIEW_TIME);
 my $sep = '|';
 
@@ -65,7 +66,7 @@ sub saveTsv {
     # convert the hash to an array in the right order
     $importData{$row->{KEY}} = [];
     for my $header (@headers) {
-      push @{$importData{$row->{KEY}}}, $row->{$header};
+      push @{$importData{$row->{KEY}}}, trim($row->{$header});
     }
   }
   close $importFh or die "Couldn't close $importFile: $!";
@@ -104,8 +105,61 @@ sub saveTsv {
   unlink "$dataFile.old" or warn "Couldn't delete old data file: $!";
 }
 
-sub save {
-  my ($dir, $master, $stbs, $titles, $providers) = @_;
+sub query {
+  my ($dataDir, $select, $filterKey, $filterVal, $order) = @_;
 
+  my $dataFile = "$dataDir/$filename";
+  my $dataFh;
+  my $dataCsv = Text::CSV->new( { binary => 1, sep_char => $sep } )
+      or die "Couldn't use Text::CSV: " . Text::CSV->error_diag();
 
+  if (!-e $dataFile) {
+    # return an empty list with no data
+    return ();
+  }
+
+  # iterate through all rows in the CSV, adding rows to the output list as necessary
+  # if there's no order clause, do everything in one pass, otherwise the
+  # sort amounts to another pass through the data
+  my @outputData;
+
+  # read all the import data into a hash of arrays
+  # assume there is a header, but don't assume the fields are in the same order always
+  open $dataFh, "<$dataFile" or die "Couldn't open $dataFile for reading: $!";
+  my @headers = $dataCsv->getline($dataFh);
+  $dataCsv->column_names(@headers);
+  while (my $row = $dataCsv->getline_hr($dataFh)) {
+    #perform single column filtering
+    next if $filterKey && !($row->{$filterKey} eq $filterVal);
+
+    # perform column selection
+    my @rowVals;
+    for my $s (@$select) {
+      push @rowVals, $row->{$s};
+    }
+
+    # create composite orderkey value
+    if (scalar @$order > 0) {
+      my @orderkey;
+      for my $o (@$order) {
+        push @orderkey, $row->{$o};
+      }
+
+      push @rowVals, join("|", @orderkey);
+    }
+
+    push @outputData, \@rowVals;
+  }
+  close $dataFh or die "Couldn't close $dataFh: $!";
+
+  # sort if necessary, and delete the temp ORDERKEY column which is the last item in each rowVals
+  if (scalar @$order && ($#outputData > 0)) {
+    my $orderIndex = $#{$outputData[0]};
+    @outputData = sort { $a->[$orderIndex] cmp $b->[$orderIndex] } @outputData;
+    for my $row (@outputData) {
+      pop @$row;
+    }
+  }
+
+  return @outputData;
 }

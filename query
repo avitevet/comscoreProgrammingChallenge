@@ -1,0 +1,99 @@
+#!/usr/bin/env perl
+
+use warnings;
+use strict;
+
+use Getopt::Long;
+use Pod::Usage;
+use FindBin;
+use Text::CSV;
+use lib "lib";
+use DataStore qw(query visible_headers);
+
+my %opt = (
+  datadir => "$FindBin::Bin/data"
+);
+GetOptions(\%opt,
+  "help",
+  "select=s",
+  "order=s",
+  "filter=s"
+)
+or pod2usage(2);
+pod2usage(-exitval => 0, -verbose => 2) if $opt{help};
+die "Couldn't read data directory!" if !-r $opt{datadir};
+
+my @headers = @DataStore::visible_headers;
+my %headersHash;
+for my $h (@headers) {
+  $headersHash{$h} = 1;
+}
+
+my @select = $opt{select} ? split(',', $opt{select}) : @headers;
+my @order = $opt{order} ? split(',', $opt{order}) : ();
+my ($filterKey, $filterValue);
+
+if ($opt{filter}) {
+  ($filterKey, $filterValue) = split('=', $opt{filter});
+}
+
+# check that only valid headers have been specified
+for my $s (@select) {
+  pod2usage("Invalid header name $s!  Valid header names are: " . join(',', @headers)) unless $headersHash{$s};
+}
+for my $o (@order) {
+  pod2usage("Invalid header name $o!  Valid header names are: " . join(',', @headers)) unless $headersHash{$o};
+}
+pod2usage("Invalid header name $filterKey!  Valid header names are: " . join(',', @headers)) if $filterKey && !$headersHash{$filterKey};
+
+my $output = Text::CSV->new( { binary => 1, sep_char => ',', eol => "\n" } )
+    or die "Couldn't use Text::CSV: " . Text::CSV->error_diag();
+
+my @results = DataStore::query($opt{datadir}, \@select, $filterKey, $filterValue, \@order);
+for my $result (@results) {
+  $output->print(*STDOUT, $result);
+}
+
+__END__
+
+=head1 NAME
+
+query: query the comScore Programming Challenge datastore
+
+=head1 SYNOPSIS
+
+query [-s <fields>] [-f <filter conditions>] [-o <ordering fields>] [--help]
+
+=head1 OPTIONS
+
+=over
+
+=item select|s <fields>
+
+Optional.  Comma separated list of fields to print out.  When not specified, prints
+all fields.  If not specified, prints all fields.
+
+=item filter|f <filter conditions>
+
+Optional.  A filter condition.  A filter condition is in the form HEADER=value,
+where HEADER is a valid header name and value is value of the field that should
+be matched.  If not specified, performs no filtering.
+
+=item order|o <ordering fields>
+
+Optional.  A comma separated list of fields that will be ordered on.  The
+printed data will be ordered first by the first field, then the second, etc
+(just like SQL).  If not specified, performs no specific ordering.
+
+=item help
+
+Optional.  This message
+
+=back
+
+=head1 DESCRIPTION
+
+Performs a simplified SQL-like query on the data store - selecting certain fields
+to be displayed, filtering on one field, and ordering the results by other fields.
+
+=cut
