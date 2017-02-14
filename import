@@ -2,9 +2,9 @@
 
 use warnings;
 use strict;
+
 use Getopt::Long;
 use Pod::Usage;
-use Pod::Text;
 use FindBin;
 use lib "lib";
 use DataStore qw(saveTsv);
@@ -14,8 +14,8 @@ my %opt = (
 );
 GetOptions(\%opt,
   "help",
-  "file:s",
-  "datadir:s"
+  "file=s",
+  "datadir=s"
 )
 or pod2usage(2);
 pod2usage(-exitval => 0, -verbose => 2) if $opt{help};
