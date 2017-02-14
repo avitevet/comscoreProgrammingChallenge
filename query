@@ -15,6 +15,7 @@ my %opt = (
 );
 GetOptions(\%opt,
   "help",
+  "datadir=s",
   "select=s",
   "order=s",
   "filter=s"
@@ -62,7 +63,7 @@ query: query the comScore Programming Challenge datastore
 
 =head1 SYNOPSIS
 
-query [-s <fields>] [-f <filter conditions>] [-o <ordering fields>] [--help]
+query [-s <fields>] [-f <filter conditions>] [-o <ordering fields>] [--datadir <directory>] [--help]
 
 =head1 OPTIONS
 
@@ -84,6 +85,10 @@ be matched.  If not specified, performs no filtering.
 Optional.  A comma separated list of fields that will be ordered on.  The
 printed data will be ordered first by the first field, then the second, etc
 (just like SQL).  If not specified, performs no specific ordering.
+
+=item datadir <directory>
+
+Optional.  The directory where the data store is located.
 
 =item help
 
