@@ -53,3 +53,11 @@ Combine the options as you wish:
     query -s STB,PROVIDER,DATE -o DATE
     query -f STB=stb1 -o VIEW_TIME
     query -s PROVIDER,TITLE,STB,DATE -o STB,DATE -f REV=4.00
+
+# CONTACT
+
+I can be reached on [LinkedIn](http://www.linked.com/in/avitevet). 
+
+# LICENSE
+
+This code is provided under the MIT License - see the LICENSE file for details.
